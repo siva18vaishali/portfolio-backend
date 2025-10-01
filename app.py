@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify
 from flask_mail import Mail, Message
-from flask_cors import CORS
 import os
 
 app = Flask(__name__)
@@ -15,18 +14,13 @@ app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME', 'siva04vaish
 
 mail = Mail(app)
 
-# Fix CORS - Allow your specific Vercel domain
-CORS(app, resources={
-    r"/*": {
-        "origins": [
-            "https://portfolio-gray-six-40.vercel.app",  # Your exact Vercel URL
-            "http://localhost:3000",
-            "http://localhost:5173"
-        ],
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type"]
-    }
-})
+# Add CORS headers manually
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', 'https://portfolio-gray-six-40.vercel.app')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
 
 @app.route("/")
 def home():
@@ -34,14 +28,13 @@ def home():
 
 @app.route("/contact", methods=["POST", "OPTIONS"])
 def contact():
-    # Handle preflight OPTIONS request
     if request.method == "OPTIONS":
-        response = jsonify({"status": "ok"})
-        response.headers.add("Access-Control-Allow-Origin", "https://portfolio-gray-six-40.vercel.app")
-        response.headers.add("Access-Control-Allow-Headers", "Content-Type")
-        return response
+        return jsonify({"status": "ok"}), 200
     
-    data = request.json
+    data = request.get_json()
+    if not data:
+        return jsonify({"success": False, "message": "No JSON data received"}), 400
+        
     name = data.get("name")
     email = data.get("email")
     message = data.get("message")
