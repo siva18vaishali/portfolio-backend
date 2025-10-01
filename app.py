@@ -1,19 +1,24 @@
 from flask import Flask, request, jsonify
 from flask_mail import Mail, Message
 from flask_cors import CORS
+import os
 
 app = Flask(__name__)
 CORS(app)  # 👈 allow requests from React frontend
 
-# Configure Flask-Mail (using Gmail SMTP here)
+# Configure Flask-Mail using environment variables
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = "siva04vaishali@gmail.com"   # <-- replace with your email
-app.config['MAIL_PASSWORD'] = "swfl yxgf lujr nxmg"      # <-- use Gmail App Password
-app.config['MAIL_DEFAULT_SENDER'] = "your_email@gmail.com"
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'siva04vaishali@gmail.com')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', '')  # Will be set in Render
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME', 'siva04vaishali@gmail.com')
 
 mail = Mail(app)
+
+@app.route("/")
+def home():
+    return jsonify({"message": "Backend is running!"})
 
 @app.route("/contact", methods=["POST"])
 def contact():
@@ -22,11 +27,15 @@ def contact():
     email = data.get("email")
     message = data.get("message")
 
+    # Validation
+    if not all([name, email, message]):
+        return jsonify({"success": False, "message": "All fields are required"}), 400
+
     try:
         # Create email message
         msg = Message(
             subject=f"New Contact Form Submission from {name}",
-            recipients=["siva04vaishali@gmail.com"],  # <-- where YOU want to receive
+            recipients=["siva04vaishali@gmail.com"],  # Where you want to receive emails
             body=f"Name: {name}\nEmail: {email}\n\nMessage:\n{message}"
         )
         mail.send(msg)
@@ -37,4 +46,5 @@ def contact():
         return jsonify({"success": False, "message": "Failed to send message."}), 500
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
