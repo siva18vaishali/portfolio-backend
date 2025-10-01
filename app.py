@@ -4,29 +4,43 @@ from flask_cors import CORS
 import os
 
 app = Flask(__name__)
-CORS(app)  # 👈 allow requests from React frontend
-
-CORS(app, origins=[
-    "https://portfolio-gray-six-40.vercel.app/",  # ⬅️ Replace this with your actual Vercel URL
-    "http://localhost:3000"
-])
 
 # Configure Flask-Mail using environment variables
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'siva04vaishali@gmail.com')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', '')  # Will be set in Render
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', '') 
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME', 'siva04vaishali@gmail.com')
 
 mail = Mail(app)
+
+# Fix CORS - Allow your specific Vercel domain
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "https://portfolio-gray-six-40.vercel.app",  # Your exact Vercel URL
+            "http://localhost:3000",
+            "http://localhost:5173"
+        ],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 
 @app.route("/")
 def home():
     return jsonify({"message": "Backend is running!"})
 
-@app.route("/contact", methods=["POST"])
+@app.route("/contact", methods=["POST", "OPTIONS"])
 def contact():
+    # Handle preflight OPTIONS request
+    if request.method == "OPTIONS":
+        response = jsonify({"status": "ok"})
+        response.headers.add("Access-Control-Allow-Origin", "https://portfolio-gray-six-40.vercel.app")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type")
+        return response
+    
     data = request.json
     name = data.get("name")
     email = data.get("email")
@@ -40,7 +54,7 @@ def contact():
         # Create email message
         msg = Message(
             subject=f"New Contact Form Submission from {name}",
-            recipients=["siva04vaishali@gmail.com"],  # Where you want to receive emails
+            recipients=["siva04vaishali@gmail.com"],
             body=f"Name: {name}\nEmail: {email}\n\nMessage:\n{message}"
         )
         mail.send(msg)
