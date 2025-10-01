@@ -1,10 +1,11 @@
 from flask import Flask, request, jsonify
 from flask_mail import Mail, Message
+from flask_cors import CORS
 import os
 
 app = Flask(__name__)
 
-# Configure Flask-Mail using environment variables
+# Configure Flask-Mail
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
@@ -14,13 +15,8 @@ app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME', 'siva04vaish
 
 mail = Mail(app)
 
-# Add CORS headers manually
-@app.after_request
-def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', 'https://portfolio-gray-six-40.vercel.app')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    return response
+# ✅ SIMPLE CORS FIX - Allow ALL origins
+CORS(app)
 
 @app.route("/")
 def home():
@@ -28,8 +24,10 @@ def home():
 
 @app.route("/contact", methods=["POST", "OPTIONS"])
 def contact():
+    # Handle preflight requests
     if request.method == "OPTIONS":
-        return jsonify({"status": "ok"}), 200
+        response = jsonify({"status": "ok"})
+        return response
     
     data = request.get_json()
     if not data:
@@ -39,19 +37,16 @@ def contact():
     email = data.get("email")
     message = data.get("message")
 
-    # Validation
     if not all([name, email, message]):
         return jsonify({"success": False, "message": "All fields are required"}), 400
 
     try:
-        # Create email message
         msg = Message(
             subject=f"New Contact Form Submission from {name}",
             recipients=["siva04vaishali@gmail.com"],
             body=f"Name: {name}\nEmail: {email}\n\nMessage:\n{message}"
         )
         mail.send(msg)
-
         return jsonify({"success": True, "message": "Message sent successfully!"}), 200
     except Exception as e:
         print("Error:", e)
