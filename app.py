@@ -6,6 +6,11 @@ import os
 app = Flask(__name__)
 CORS(app)  # 👈 allow requests from React frontend
 
+CORS(app, origins=[
+    "https://portfolio-gray-six-40.vercel.app/",  # ⬅️ Replace this with your actual Vercel URL
+    "http://localhost:3000"
+])
+
 # Configure Flask-Mail using environment variables
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
